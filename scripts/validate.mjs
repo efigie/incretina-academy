@@ -1,0 +1,8 @@
+import {readFileSync,existsSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {lessons,studies,drugs,protocols,sources} from '../dist/content.js';
+import {questions,cases,cards} from '../dist/learning.js';
+const fail=[];const refIds=new Set(sources.map(s=>s.id));for(const list of [lessons,studies,drugs,protocols,questions,cases,cards]){if(new Set(list.map(x=>x.id)).size!==list.length)fail.push('IDs duplicados');for(const x of list){for(const id of x.refs||[])if(!refIds.has(id))fail.push('Fonte ausente: '+id);if(x.options&&(!x.options[x.correct]||x.options.length<2))fail.push('Questão inválida '+x.id)}}
+for(const f of ['app.js','content.js','learning.js','core.js','journal.js'])execFileSync(process.execPath,['--check','dist/'+f]);execFileSync(process.execPath,['--check','netlify/functions/tutor.mjs']);for(const f of ['dist/index.html','dist/style.css','dist/icon.svg','netlify.toml'])if(!existsSync(f))fail.push('Arquivo ausente '+f);for(const s of sources)if(!/^https:\/\//.test(s.url))fail.push('URL inválida');
+for(const s of studies)if(!s.discussion?.question||!s.discussion?.answer||!s.discussion?.discussion)fail.push('Discussão ausente: '+s.id);
+const js=readFileSync('dist/app.js','utf8');if(/onclick=|onerror=/.test(js))fail.push('Handler inline inesperado');if(fail.length){console.error(fail.join('\n'));process.exit(1)}console.log(`Validado: ${lessons.length} aulas, ${studies.length} estudos, ${drugs.length} fichas, ${protocols.length} protocolos, ${questions.length} questões, ${cases.length} casos, ${cards.length} cartões e ${sources.length} referências.`);
